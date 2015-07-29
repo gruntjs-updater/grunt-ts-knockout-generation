@@ -49,7 +49,7 @@ A string value that is used to indicate your C# source files.
 Type: `String`
 Default value: `''`
 
-A string value that is used to do indicate the directory that files will be generated.
+A string value that is used to indicate the directory that files will be generated.
 
 ### Usage Examples
 
