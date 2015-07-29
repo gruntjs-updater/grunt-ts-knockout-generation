@@ -1,0 +1,46 @@
+{
+    "author": "Christophe Gigax",
+    "name": "grunt-ts-knockout-generation",
+    "description": "Generate Knockout ViewModels in Typescript from C# ViewModels",
+    "version": "0.1.0",
+    "homepage": "https://github.com/ChrisProlls/grunt-ts-knockout-generation",
+    "repository": {
+        "type": "git",
+        "url": "git@github.com:k-maru/grunt-typescript.git"
+    },
+    "bugs": {
+        "url": "https://github.com/ChrisProlls/grunt-ts-knockout-generation/issues"
+    },
+    "licenses": [
+    {
+      "type": "MIT",
+      "url": "https://github.com/ChrisProlls/grunt-ts-knockout-generation/blob/master/LICENSE-MIT"
+    }
+  ],
+    "main": "gruntfile.js",
+    "scripts": {
+        "start": "grunt build",
+        "test": "grunt test"
+    },
+    "engines": {
+        "node": ">= 0.8.0"
+    },
+    "peerDependencies": {
+        "grunt": "~0.4.5"
+    },
+    "devDependencies": {
+        "grunt": "~0.4.5",
+        "grunt-typescript": "~0.6.2",
+        "grunt-contrib-watch": "~0.6.1",
+        "grunt-contrib-clean": "~0.6.0",
+        "grunt-contrib-nodeunit": "~0.4.1",
+        "typescript": "~1.5.3"
+    },
+    "optionalDependencies": {
+    },
+    "keywords": [
+        "gruntplugin",
+        "typescript",
+        "knockout"
+    ]
+}
