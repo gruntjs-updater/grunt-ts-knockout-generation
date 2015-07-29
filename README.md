@@ -65,7 +65,7 @@ public class EntityItemViewModel
 }
 ```
 
-And the plugin will generated
+And the plugin will generate
 
 ```ts
 /// <reference path="knockout.d.ts"/>
