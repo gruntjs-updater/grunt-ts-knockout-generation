@@ -11,9 +11,21 @@ function startup(grunt) {
         // We search options provided by the developer
         var options = this.options();
         var destPath = options.destPath;
+        var basePath = options.basePath;
+        if (!destPath || destPath == "") {
+            grunt.fatal("Destination path undefined or empty");
+            return;
+        }
+        else if (!basePath || basePath == "") {
+            grunt.fatal("Base path undefined or empty");
+            return;
+        }
         // We create the destination directory if not exist
         CreateDestDirIfNotExist(destPath);
-        var VMfiles = GetAllFilesFromFolder(options.basePath);
+        var VMfiles = GetAllFilesFromFolder(basePath);
+        if (VMfiles.length == 0) {
+            grunt.warn("No file found at " + basePath);
+        }
         // For each C# viewmodel files
         VMfiles.forEach(function (file) {
             // We build the file name and the path
@@ -26,7 +38,7 @@ function startup(grunt) {
             var content = GenerateClass(classMetadata);
             //We write the content into the new Typescript file
             grunt.file.write(fileNameDest, content);
-            grunt.log.write("Generated file : " + fileNameDest);
+            grunt.log.writeln("Generated file : " + fileNameDest);
         });
         /*
             Functions
