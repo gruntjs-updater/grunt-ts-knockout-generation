@@ -2,6 +2,12 @@
 ///<reference path="../typings/grunt.d.ts" />
 
 function startup(grunt: IGrunt) {
+    // We extend the String class
+    if (typeof String.prototype.startsWith != 'function') {
+        String.prototype.startsWith = function (str) {
+            return this.slice(0, str.length) == str;
+        };
+    }
 
     // Registration of the task
     grunt.registerMultiTask("ts_knockout_generation", "Generate Knockout ViewModels in Typescript from C# ViewModels.", function () {
@@ -61,25 +67,34 @@ function startup(grunt: IGrunt) {
         /*
             This method scans the C# file and store all informations we need, like class name, properties metadata ...
         */
-        function GetClassMetadata(file: string): ClassMetadata {
+        function GetClassMetadata(file: string): Array<ClassMetadata> {
             // Initialisation of all regex we need
-            var regexp = new RegExp('([a-zA-Z]+) ([a-zA-Z]+) ([a-zA-Z]+) { get; set; }');
-            var regexpList = new RegExp('([a-zA-Z]+) List<([a-zA-Z]+)> ([a-zA-Z]+) { get; set; }');
-            var regexpClass = new RegExp('class ([a-zA-Z]+)');
+            var regexp = new RegExp('([a-zA-Z]+) ([a-zA-Z]+) ([a-zA-Z0-9]+) { get; set; }');
+            var regexpList = new RegExp('([a-zA-Z]+) List<([a-zA-Z]+)> ([a-zA-Z0-9]+) { get; set; }');
+            var regexpClass = new RegExp('class ([a-zA-Z0-9]+)');
 
             // We read de C# class
             var content = grunt.file.read(file);
             var classMetadata: ClassMetadata;
+            var arrayClass = new Array<ClassMetadata>();
+
+            // Private variable for detecting class ending
+            var bracketLevel = 0;
+            var canDetectClass = false;
 
             // Line by line
             var lines = content.split('\n');
             for (var line = 0; line < lines.length; line++) {
                 var item = lines[line].trim();
 
+                // Skip comments
+                if (item.startsWith("//") || item.startsWith("/*"))
+                    continue;
+
                 // Class declaration
-                if (regexpClass && regexpClass.test(item)) {
+                if (regexpClass.test(item)) {
                     classMetadata = new ClassMetadata(regexpClass.exec(item)[1]);
-                    regexpClass = null;
+                    canDetectClass = true;
                     continue;
                 }
 
@@ -95,11 +110,21 @@ function startup(grunt: IGrunt) {
                 }
 
                 // We store the PropertyMetadata object 
-                if (results != null)
+                if (results != null) {
                     classMetadata.Properties.push(new PropertyMetadata(results[1], isCollection, results[2], results[3]));
+                } else if (canDetectClass && item == "{") { // We test if we meet a bracket
+                    bracketLevel++;
+                } else if (canDetectClass && item == "}") { // If we meet an ending-bracket, maybe it's the end of the class
+                    bracketLevel--;
+
+                    if (bracketLevel == 0) { // End of class
+                        arrayClass.push(classMetadata);
+                        canDetectClass = false;
+                    }
+                }
             }
 
-            return classMetadata;
+            return arrayClass;
         }
 
         /*
@@ -127,26 +152,30 @@ function startup(grunt: IGrunt) {
         /*
             Generate content of the Typescript class
         */
-        function GenerateClass(classMetadata: ClassMetadata): string {
+        function GenerateClass(arrayClass: Array<ClassMetadata>): string {
             var builder: string = "/// <reference path=\"knockout.d.ts\"/>\r\n";
 
-            builder += "class " + classMetadata.ClassName + "\r\n";
-            builder += "{\r\n";
+            arrayClass.forEach(function (classMetadata) {
 
-            classMetadata.Properties.forEach(function (property) {
-                builder += "    " + GenerateProperty(property);
+                builder += "class " + classMetadata.ClassName + "\r\n";
+                builder += "{\r\n";
+
+                classMetadata.Properties.forEach(function (property) {
+                    builder += "    " + GenerateProperty(property);
+                });
+
+                builder += "\r\n";
+                builder += "    constructor(){\r\n"
+
+                classMetadata.Properties.forEach(function (property) {
+                    builder += "        " + GeneratePropertyInitializer(property);
+                });
+
+                builder += "    }\r\n";
+
+                builder += "}\r\n";
+                builder += "\r\n";
             });
-
-            builder += "\r\n";
-            builder += "    constructor(){\r\n"
-
-            classMetadata.Properties.forEach(function (property) {
-                builder += "        " + GeneratePropertyInitializer(property);
-            });
-
-            builder += "    }\r\n";
-
-            builder += "}\r\n";
 
             return builder;
         }
@@ -187,6 +216,10 @@ module.exports = startup;
 /*
     Typescript classes
 */
+
+interface String {
+    startsWith(str: string): boolean;
+}
 
 class ClassMetadata {
     public ClassName: string;

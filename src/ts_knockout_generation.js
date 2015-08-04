@@ -1,6 +1,12 @@
 ///<reference path="../typings/node.d.ts" />
 ///<reference path="../typings/grunt.d.ts" />
 function startup(grunt) {
+    // We extend the String class
+    if (typeof String.prototype.startsWith != 'function') {
+        String.prototype.startsWith = function (str) {
+            return this.slice(0, str.length) == str;
+        };
+    }
     // Registration of the task
     grunt.registerMultiTask("ts_knockout_generation", "Generate Knockout ViewModels in Typescript from C# ViewModels.", function () {
         /*
@@ -48,20 +54,27 @@ function startup(grunt) {
         */
         function GetClassMetadata(file) {
             // Initialisation of all regex we need
-            var regexp = new RegExp('([a-zA-Z]+) ([a-zA-Z]+) ([a-zA-Z]+) { get; set; }');
-            var regexpList = new RegExp('([a-zA-Z]+) List<([a-zA-Z]+)> ([a-zA-Z]+) { get; set; }');
-            var regexpClass = new RegExp('class ([a-zA-Z]+)');
+            var regexp = new RegExp('([a-zA-Z]+) ([a-zA-Z]+) ([a-zA-Z0-9]+) { get; set; }');
+            var regexpList = new RegExp('([a-zA-Z]+) List<([a-zA-Z]+)> ([a-zA-Z0-9]+) { get; set; }');
+            var regexpClass = new RegExp('class ([a-zA-Z0-9]+)');
             // We read de C# class
             var content = grunt.file.read(file);
             var classMetadata;
+            var arrayClass = new Array();
+            // Private variable for detecting class ending
+            var bracketLevel = 0;
+            var canDetectClass = false;
             // Line by line
             var lines = content.split('\n');
             for (var line = 0; line < lines.length; line++) {
                 var item = lines[line].trim();
+                // Skip comments
+                if (item.startsWith("//") || item.startsWith("/*"))
+                    continue;
                 // Class declaration
-                if (regexpClass && regexpClass.test(item)) {
+                if (regexpClass.test(item)) {
                     classMetadata = new ClassMetadata(regexpClass.exec(item)[1]);
-                    regexpClass = null;
+                    canDetectClass = true;
                     continue;
                 }
                 var isCollection = false;
@@ -75,10 +88,21 @@ function startup(grunt) {
                     isCollection = true;
                 }
                 // We store the PropertyMetadata object 
-                if (results != null)
+                if (results != null) {
                     classMetadata.Properties.push(new PropertyMetadata(results[1], isCollection, results[2], results[3]));
+                }
+                else if (canDetectClass && item == "{") {
+                    bracketLevel++;
+                }
+                else if (canDetectClass && item == "}") {
+                    bracketLevel--;
+                    if (bracketLevel == 0) {
+                        arrayClass.push(classMetadata);
+                        canDetectClass = false;
+                    }
+                }
             }
-            return classMetadata;
+            return arrayClass;
         }
         /*
             Generate the line in the constructor to initialize the property
@@ -99,20 +123,23 @@ function startup(grunt) {
         /*
             Generate content of the Typescript class
         */
-        function GenerateClass(classMetadata) {
+        function GenerateClass(arrayClass) {
             var builder = "/// <reference path=\"knockout.d.ts\"/>\r\n";
-            builder += "class " + classMetadata.ClassName + "\r\n";
-            builder += "{\r\n";
-            classMetadata.Properties.forEach(function (property) {
-                builder += "    " + GenerateProperty(property);
+            arrayClass.forEach(function (classMetadata) {
+                builder += "class " + classMetadata.ClassName + "\r\n";
+                builder += "{\r\n";
+                classMetadata.Properties.forEach(function (property) {
+                    builder += "    " + GenerateProperty(property);
+                });
+                builder += "\r\n";
+                builder += "    constructor(){\r\n";
+                classMetadata.Properties.forEach(function (property) {
+                    builder += "        " + GeneratePropertyInitializer(property);
+                });
+                builder += "    }\r\n";
+                builder += "}\r\n";
+                builder += "\r\n";
             });
-            builder += "\r\n";
-            builder += "    constructor(){\r\n";
-            classMetadata.Properties.forEach(function (property) {
-                builder += "        " + GeneratePropertyInitializer(property);
-            });
-            builder += "    }\r\n";
-            builder += "}\r\n";
             return builder;
         }
         /*
@@ -142,9 +169,6 @@ function startup(grunt) {
     });
 }
 module.exports = startup;
-/*
-    Typescript classes
-*/
 var ClassMetadata = (function () {
     function ClassMetadata(className) {
         this.ClassName = className;
