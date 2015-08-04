@@ -41,13 +41,13 @@ You only have to specify the root file of all your C# ViewModels files and folde
 
 #### options.basePath
 Type: `String`
-Default value: `''`
+**Required**
 
 A string value that is used to indicate your C# source files.
 
 #### options.destPath
 Type: `String`
-Default value: `''`
+**Required**
 
 A string value that is used to indicate the directory that files will be generated.
 
