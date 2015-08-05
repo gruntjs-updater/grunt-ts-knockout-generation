@@ -271,6 +271,7 @@ class PropertyMetadata {
                 break;
             case "DateTime":
                 this.PropertyTypeTS = "Date";
+                this.IsTypeObject = true;
                 break;
             default:
                 this.PropertyTypeTS = this.PropertyType;

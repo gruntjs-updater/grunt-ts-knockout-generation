@@ -2,7 +2,7 @@
     "author": "Christophe Gigax",
     "name": "grunt-ts-knockout-generation",
     "description": "Generate Knockout ViewModels in Typescript from C# ViewModels",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "homepage": "https://github.com/ChrisProlls/grunt-ts-knockout-generation",
     "repository": {
         "type": "git",
